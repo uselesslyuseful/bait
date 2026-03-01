@@ -399,7 +399,7 @@ async def main():
     sanity = Resource("sanity", 5, 100)
     money = Resource("money", 175, 0)
 
-    status = "game"
+    status = "title"
     tutorial_phase = "dialogue"
     tutorial_fish_spawned = False
     entity_display = False
