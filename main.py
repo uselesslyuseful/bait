@@ -11,7 +11,7 @@ async def main():
     SCREEN_HEIGHT = 720
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     pygame.display.set_caption("bait")
-    GOALS = [50, 10000, 100000]
+    GOALS = [500, 10000, 100000]
     FISH = {
         "anchovy":{"image":pygame.image.load("fish_cuatro.png"), "sanity":1,"money":5, "percentage":14, "speed":2}, 
         "mackerel":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1,"money":5, "percentage":14, "speed":2},
@@ -62,7 +62,7 @@ async def main():
         new_size = (int(img_w * scale), int(img_h * scale))
         scaled_img = pygame.transform.smoothscale(image, new_size)
         return scaled_img
-    
+
     def wrap_text(text, font, max_width):
         words = text.split()
         lines = []
@@ -206,6 +206,155 @@ async def main():
         @staticmethod
         def generate(OBJECTS):
             return weighted_pick(OBJECTS)
+
+    class StationMenu():
+        def __init__(self, screen_width, screen_height, attributes_dict):
+            self.screen_width = screen_width
+            self.screen_height = screen_height
+            self.attributes_dict = attributes_dict
+
+            self.preview_cache = {}
+
+            for category in self.attributes_dict.values():
+                for name, info in category.items():
+                    self.preview_cache[name] = pygame.transform.smoothscale(info["image"], (60, 60))
+
+            self.button_size = 80
+            self.button_image = pygame.image.load("dictionary.png")
+            self.button_rect = self.button_image.get_rect(center=(screen_width - self.button_size//2 - 10, 100))
+
+            self.popup_width = 900
+            self.popup_height = 600
+            self.popup_rect = pygame.Rect((screen_width - self.popup_width)//2, (screen_height - self.popup_height)//2, self.popup_width, self.popup_height)
+
+            self.close_rect = pygame.Rect(self.popup_rect.right - 35, self.popup_rect.top + 10, 30, 30)
+
+            self.stations = ["fish", "objects"]
+            self.station_buttons = []
+            self._generate_station_buttons()
+            
+            self.open = False
+            self.active_station = None
+            
+            self.scroll_offset = 0
+            self.scroll_offset_minmax = (-500, 20)
+            self.scroll_speed = 20
+
+            self.font = pygame.font.Font(None, 28)
+            self.small_font = pygame.font.Font(None, 22)
+
+        def _generate_station_buttons(self):
+            btn_width = self.popup_width // len(self.stations)
+            btn_height = 60
+            y = self.popup_rect.top + 50
+
+            for i, station in enumerate(self.stations):
+                rect = pygame.Rect(self.popup_rect.left + (i * btn_width), y, btn_width, btn_height)
+                self.station_buttons.append((station, rect))
+        
+        def toggle(self):
+            self.open = not self.open
+            self.active_station = None
+            self.scroll_offset = 0
+        
+        def handle_event(self, event):
+
+            if not self.open:
+                if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                    if self.button_rect.collidepoint(event.pos):
+                        self.toggle()
+                return
+            
+            if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                if self.close_rect.collidepoint(event.pos):
+                    self.toggle()
+                    return
+                
+                for station, rect in self.station_buttons:
+                    if rect.collidepoint(event.pos):
+                        self.active_station = station
+                        self.scroll_offset = 0
+                        self._update_scroll_limits()
+                        return
+                
+            if event.type == MOUSEWHEEL:
+                self.scroll_offset += event.y * self.scroll_speed
+                self.scroll_offset = max(min(self.scroll_offset_minmax[1], self.scroll_offset), self.scroll_offset_minmax[0])
+
+                
+            
+        def draw(self, screen):
+            if not self.open:
+                pygame.draw.rect(screen, (100, 100, 100), self.button_rect.inflate(4,4), 4)
+                screen.blit(self.button_image, self.button_rect)
+                return
+            
+            pygame.draw.rect(screen, (12, 105, 95), self.popup_rect)
+            pygame.draw.rect(screen, (200, 200, 200), self.popup_rect, 4)
+
+            pygame.draw.rect(screen, (200, 50, 50), self.close_rect)
+            pygame.draw.rect(screen, (255, 255, 255), self.close_rect, 2)
+
+            for station, rect in self.station_buttons:
+                color = (90, 90, 80) if station == self.active_station else (130, 130, 130)
+                pygame.draw.rect(screen, color, rect)
+                pygame.draw.rect(screen, (255, 255, 255), rect, 2)
+
+                label = self.small_font.render(station.replace("_", " ").title(), True, (255, 255, 255))
+                screen.blit(label, label.get_rect(center = rect.center))
+            
+            if self.active_station:
+                self._draw_tag_list(screen)
+
+        def _draw_tag_list(self, screen):
+            clip_rect = pygame.Rect(
+                self.popup_rect.left + 20,
+                self.popup_rect.top + 120,
+                self.popup_width - 40,
+                self.popup_height - 160
+            )
+
+            screen.set_clip(clip_rect)
+
+            y = clip_rect.top + self.scroll_offset
+            x = clip_rect.left + 10
+
+            entries = self.attributes_dict[self.active_station]
+
+            for name, info in entries.items():
+                img = self.preview_cache[name]
+                img_rect = img.get_rect(topleft=(x, y))
+                screen.blit(img, img_rect)
+
+                name_surface = self.font.render(name.title(), True, (159, 209, 196))
+                screen.blit(name_surface, (x + 80, y))
+
+                attr_y = y + 28
+
+                for key, value in info.items():
+                    if key == "image":
+                        continue
+
+                    attr_surface = self.small_font.render(
+                        f"{key.capitalize()}: {value}", True, (220, 220, 220)
+                    )
+                    screen.blit(attr_surface, (x + 80, attr_y))
+                    attr_y += 20
+                y += max(80, attr_y - y) + 10
+
+            screen.set_clip(None)
+        
+        def _update_scroll_limits(self):
+            if not self.active_station:
+                return
+
+            entries = self.attributes_dict[self.active_station]
+            content_height = len(entries) * 120
+
+            visible_height = self.popup_height - 160
+            min_scroll = min(0, visible_height - content_height)
+
+            self.scroll_offset_minmax = (min_scroll, 20)
     
     
     def caught_display(name, scale):
@@ -261,9 +410,7 @@ async def main():
     max_scale = 3.0
     zoom_speed = 0.5
     min_scale = 1.0
-    zooming = False
     level = 0
-    button_text = "Shop"
     tutorial_text = ["Welcome to Bait!",
                             "In this tutorial, you'll learn how to catch your own fish.",
                             "After this dialogue, you'll see a fish show up.",
@@ -288,13 +435,12 @@ async def main():
                         "Watch out. Some of them will take as much as they can.",
                         "Replenish your sanity by catching normal fish.",
                         "Good luck."]
-    end_text = ["Oh, dear.",
-                "Your sanity has depleted.",
-                "And you were doing so well...",
-                "...It was bound to happen sometime.",
-                "I suppose I'll just have to wait until this whole thing restarts.",
-                "Farewell."
-                ]
+    ending_text = ["Well.",
+                    "I suppose you tried your best.",
+                    "I don't blame you. Many stronger have also lost their minds.",
+                    "A shame that you'll die here.",
+                    "Don't worry, you'll be replaced soon enough.",
+                    "...Goodbye.",]
     text_box = TextBox(tutorial_text)
     shop_button = Button("shop.png", "Shop", (50, 100), size=80)
     spawn_rate_plus = Button("spawnup.png","Spawn Faster", (350, 220), price=20)
@@ -303,6 +449,13 @@ async def main():
     object_rate_minus = Button("objectdown.png","Fewer Objects", (930, 420), price=50)
     shop_message = ""
     shop_message_timer = 0
+
+    station_data = {
+        "fish": FISH,
+        "objects": OBJECTS
+    }
+
+    station_menu = StationMenu(SCREEN_WIDTH, SCREEN_HEIGHT, station_data)
     
 
     frame = 0
@@ -311,7 +464,8 @@ async def main():
 
 
     while running:
-        for event in pygame.event.get(): 
+        for event in pygame.event.get():
+            station_menu.handle_event(event)
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
@@ -336,6 +490,12 @@ async def main():
                             text_box.update()
                         else:
                             status = "game"
+                elif event.key == K_RETURN and status == "end":
+
+                    if text_box.curr_text < len(ending_text) - 1:
+                        text_box.update()
+                    else:
+                        running = False
             elif event.type == QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and status in ("game", "tutorial", "second_tutorial", "shop"):
@@ -350,19 +510,28 @@ async def main():
                                 caught_fish = entity.type
                                 money.current_amount += entity.money
                                 sanity.current_amount = min(100, sanity.current_amount + entity.sanity)
-                                if sanity.current_amount < 25 and current_sea_state != "high":
-                                    sea.set_images(high_sea_imgs)
-                                    current_sea_state = "high"
+                                if sanity.current_amount < 25:
+                                    desired_state = "high"
+                                elif sanity.current_amount < 50:
+                                    desired_state = "mild"
+                                else:
+                                    desired_state = "normal"
 
-                                elif sanity.current_amount < 50 and current_sea_state != "mild":
-                                    sea.set_images(mild_sea_imgs)
-                                    current_sea_state = "mild"
+                                if desired_state != current_sea_state:
+                                    current_sea_state = desired_state
 
-                                elif sanity.current_amount >= 50 and current_sea_state != "normal":
-                                    sea.set_images(normal_sea_imgs)
-                                    current_sea_state = "normal"
+                                    if desired_state == "high":
+                                        sea.set_images(high_sea_imgs)
+                                    elif desired_state == "mild":
+                                        sea.set_images(mild_sea_imgs)
+                                    else:
+                                        sea.set_images(normal_sea_imgs)
                                 entity.rect.x = -2000
                                 entity.kill()
+                                if sanity.current_amount <= 0:
+                                    status = "end"
+                                    start = True
+                                    break
                                 entity_display = True
                                 max_scale = 3.0
                                 if status == "tutorial" and tutorial_phase == "catch":
@@ -431,7 +600,7 @@ async def main():
                             shop_message_timer = 80
                     elif object_rate_plus.clicked(event.pos):
                         if money.current_amount >= object_rate_plus.price:
-                            money.current_amount -= spawn_rate_plus.price
+                            money.current_amount -= object_rate_plus.price
                             chances["FISH"] -= 5
                             chances["OBJECTS"] += 5
                         else:
@@ -439,7 +608,7 @@ async def main():
                             shop_message_timer = 80
                     elif object_rate_minus.clicked(event.pos):
                         if money.current_amount >= object_rate_minus.price:
-                            money.current_amount -= spawn_rate_minus.price
+                            money.current_amount -= object_rate_minus.price
                             chances["FISH"] += 5
                             chances["OBJECTS"] -= 5
                         else:
@@ -553,6 +722,7 @@ async def main():
             sanity.display()
             money.display()
             shop_button.draw(screen)
+            station_menu.draw(screen)
             screen.blit(goal_surface, goal_rect)
             frame += 1
         
@@ -589,6 +759,12 @@ async def main():
                 screen.blit(warning, warning_rect)
 
                 shop_message_timer -= 1
+        elif status == "end":
+            if start:
+                text_box = TextBox(ending_text)
+                start = False
+            sea.update(screen)
+            text_box.draw()
 
         clock.tick(60)
         pygame.display.update()
