@@ -16,12 +16,12 @@ async def main():
         "mackerel":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1,"money":5, "percentage":14, "speed":2},
         "bass":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1, "money":6, "percentage":12, "speed":1},
         "squid":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":2, "money":12, "percentage":10, "speed":3},
-        "eel":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":3, "money":17, "percentage":9, "speed":2},
+        "totallyafish":{"image":pygame.image.load("fish_tres.png"), "sanity":3, "money":17, "percentage":9, "speed":2},
         "clownfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":4, "money":35, "percentage":8, "speed":1},
         "seahorse":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":5, "money":100, "percentage":8, "speed":5},
         "pufferfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":3, "money":20, "percentage":8, "speed":3},
-        "butterflyfish":{"image":pygame.image.load("fish_uno.png"), "sanity":5, "money":110, "percentage":6, "speed":7},
-        "napoleonfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":7, "money":250, "percentage":5, "speed":2},
+        "bettafish":{"image":pygame.image.load("fish_uno.png"), "sanity":5, "money":110, "percentage":6, "speed":7},
+        "sunfish":{"image":pygame.image.load("fish_dos.png"), "sanity":7, "money":250, "percentage":5, "speed":2},
         "tuna":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":10, "money":900, "percentage":2, "speed":1},
         "marlin":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":13, "money":1000, "percentage":1, "speed":1},
         "hammerhead":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":14, "money":1100, "percentage":1, "speed":3},
@@ -30,13 +30,13 @@ async def main():
         }
     OBJECTS = {
         "A Spoon That Remembers Future Meals":{"image":pygame.image.load("spoon.png"), "sanity":-7, "money":400, "percentage":15, "speed":5},
-        "An Equation Leaking Colour":{"image":pygame.image.load("spoon.png"), "sanity":-12, "money":900, "percentage":12, "speed":5},
-        "The Sound of an Unsaid Apology":{"image":pygame.image.load("spoon.png"), "sanity":-10, "money":700, "percentage":13, "speed":5},
-        "A Cube with Negative Volume":{"image":pygame.image.load("spoon.png"), "sanity":-60, "money":8000, "percentage":6, "speed":5},
+        "An Equation Leaking Colour":{"image":pygame.image.load("equationleakingcolor.png"), "sanity":-12, "money":900, "percentage":11, "speed":5},
+        "The Sound of an Unsaid Apology":{"image":pygame.image.load("condensedapology.png"), "sanity":-10, "money":700, "percentage":13, "speed":5},
+        "A Cube with Negative Volume":{"image":pygame.image.load("tesseract.png"), "sanity":-60, "money":8000, "percentage":4, "speed":5},
         "Skeleton of a Fish":{"image":pygame.image.load("spoon.png"), "sanity":-3, "money":1, "percentage":25, "speed":5},
         "Half of a Whole That Doesn’t Exist Yet":{"image":pygame.image.load("spoon.png"), "sanity":-30, "money":5000, "percentage":5, "speed":5},
         "The Laughing Line Segment":{"image":pygame.image.load("spoon.png"), "sanity":-25, "money":1000, "percentage":10, "speed":5},
-        "A Cube with Infinite Sides":{"image":pygame.image.load("spoon.png"), "sanity":-80, "money":10000, "percentage":2, "speed":5},
+        "A Cube with Infinite Sides":{"image":pygame.image.load("squarewithinfinitesides.png"), "sanity":-80, "money":10000, "percentage":1, "speed":5},
         "A Portrait of You Sorting Objects Before You Were Born":{"image":pygame.image.load("spoon.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
         "Clock with Sixfold Hands":{"image":pygame.image.load("spoon.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
     }
@@ -152,6 +152,8 @@ async def main():
     sea_images = [pygame.image.load("normal_sea.png"), pygame.image.load("normal_sea.png")]
     sea = Sea(sea_images)
 
+    title_image = pygame.image.load("title_screen.png").convert()
+
     #MAIN
 
     sanity = Resource("sanity", 5, 100)
@@ -176,6 +178,8 @@ async def main():
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
+                elif event.key == K_RETURN and status == "title":
+                    status = "game"
             elif event.type == QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and status == "game":
@@ -195,7 +199,8 @@ async def main():
                     zooming = True
         pressed_keys = pygame.key.get_pressed()
         if status == "title":
-            pass
+            title_rect = title_image.get_rect(center=screen.get_rect().center)
+            screen.blit(title_image, title_rect)
         if status == "game":
             if frame % 300 == 0:
                 category_roll = random.randint(1, 100)
@@ -218,7 +223,7 @@ async def main():
                 screen.blit(entity.image, entity.rect)
             if entity_display:
                 if frame <= caught_frame + 60:
-                    image = pygame.image.load("effect.png").convert_alpha()
+                    image = scale_to_fit(pygame.image.load("effect.png").convert_alpha(), (600, 400))
                     image_rect = image.get_rect(center=(640,360))
                     screen.blit(image, image_rect)
                     if max_scale > min_scale:
@@ -233,9 +238,7 @@ async def main():
             money.display()
             pygame.display.update()
             frame += 1
-        
-    
-        clock.tick(60)
+            clock.tick(240)
         await asyncio.sleep(0)
 
     pygame.quit()   
