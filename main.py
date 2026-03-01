@@ -42,7 +42,16 @@ async def main():
 
                 screen.blit(self.images[i], self.rects[i])
     
-    def fishing():
+    class Fish(pygame.sprite.Sprite):
+        def __init__(self, fish_info):
+            self.image = fish_info["image"]
+            self.sanity = fish_info["sanity"]
+            self.money = fish_info["money"]
+            self.speed = fish_info["speed"]
+            self.rect = self.image.get_rect(midright=(random.randint()))
+
+    
+    def create_fish():
         fish_num = random.randint(1, 100)
         cumulative = 0
         caught_fish = None
@@ -80,6 +89,7 @@ async def main():
     fish_display = False
     caught_fish = None
     caught_frame = 0
+    active_fish = pygame.sprite.Group()
     max_scale = 3.0
     zoom_speed = 0.5
     min_scale = 1.0
@@ -97,10 +107,13 @@ async def main():
             elif event.type == QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and status == "game":
-                caught_frame = frame
-                if event.button == 1:
-                    caught_fish = fishing()
-                    fish_display = True
+                for fish in active_fish:
+                    if fish.rect.collidepoint(event.pos):
+                        if event.button == 1:
+                            caught_frame = frame
+                            caught_fish = fish.type
+                            fish_display = True
+                        break
                     max_scale = 3.0
                     zooming = True
         pressed_keys = pygame.key.get_pressed()
