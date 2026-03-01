@@ -11,7 +11,7 @@ async def main():
     SCREEN_HEIGHT = 720
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     pygame.display.set_caption("bait")
-    GOALS = [500, 10000, 100000]
+    GOALS = [50, 10000, 100000]
     FISH = {
         "anchovy":{"image":pygame.image.load("fish_cuatro.png"), "sanity":1,"money":5, "percentage":14, "speed":2}, 
         "mackerel":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1,"money":5, "percentage":14, "speed":2},
@@ -41,7 +41,7 @@ async def main():
         "A Portrait of You Sorting Objects Before You Were Born":{"image":pygame.image.load("spoon.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
         "Clock with Sixfold Hands":{"image":pygame.image.load("sixfoldclock.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
     }
-    CHANCES = {"FISH":50, "OBJECTS":50}
+    chances = {"FISH":50, "OBJECTS":50}
 
     def weighted_pick(table):
         roll = random.randint(1, 100)
@@ -100,15 +100,30 @@ async def main():
         def update(self):
             self.curr_text += 1
     
-    class Button(pygame.sprite.Sprite):
-        def __init__(self, text, center_pos):
-            super().__init__()
-            self.font = pygame.font.Font(None, 30)
+    class Button:
+        def __init__(self, image, text, center_pos, price=None, size=120):
+            self.image = pygame.image.load(image)
             self.text = text
-            self.image = pygame.image.load("box.png")
+            self.price = price
+            self.size = size
+            self.font = pygame.font.Font(None, 28)
+            self.small_font = pygame.font.Font(None, 24)
+
             self.rect = self.image.get_rect(center=center_pos)
-        def draw(self):
+
+        def draw(self, screen):
             screen.blit(self.image, self.rect)
+            pygame.draw.rect(screen, (80, 80, 80), self.rect, 3)
+
+            label = self.font.render(self.text, True, (0, 0, 0))
+            label_rect = label.get_rect(midtop=(self.rect.centerx, self.rect.bottom + 6))
+            screen.blit(label, label_rect)
+
+            if self.price is not None:
+                price_text = self.small_font.render(f"${self.price}", True, (0, 120, 0))
+                price_rect = price_text.get_rect(midtop=(self.rect.centerx, label_rect.bottom + 2))
+                screen.blit(price_text, price_rect)
+
         def clicked(self, pos):
             return self.rect.collidepoint(pos)
 
@@ -124,6 +139,8 @@ async def main():
                     self.rects[i].left = other.right-1
 
                 screen.blit(self.images[i], self.rects[i])
+        def set_images(self, images):
+            self.images = images
 
     class Resource():
         def __init__(self, type, x_pos, curr_amt):
@@ -145,7 +162,12 @@ async def main():
             self.sanity = fish_info["sanity"]
             self.money = fish_info["money"]
             self.speed = fish_info["speed"]
-            self.rect = self.image.get_rect(midleft=(1280, random.randint(400,720)))
+            img_w, img_h = self.image.get_size()
+            min_top = 260
+            max_top = 720 - img_h
+
+            y_pos = random.randint(min_top, max_top)
+            self.rect = self.image.get_rect(topleft=(1280, y_pos))
         def update(self):
             self.rect.move_ip(-1 * self.speed, 0)
             if self.rect.right < 0:
@@ -171,9 +193,12 @@ async def main():
             self.sanity = obj_info["sanity"]
             self.money = obj_info["money"]
             self.speed = obj_info["speed"]
-            self.rect = self.image.get_rect(
-                midleft=(1280, random.randint(400, 720))
-            )
+            img_w, img_h = self.image.get_size()
+            min_top = 260
+            max_top = 720 - img_h
+
+            y_pos = random.randint(min_top, max_top)
+            self.rect = self.image.get_rect(topleft=(1280, y_pos))
 
         def update(self):
             self.rect.move_ip(-self.speed, 0)
@@ -201,8 +226,21 @@ async def main():
 
     clock = pygame.time.Clock()
 
-    sea_images = [pygame.image.load("normal_sea.png"), pygame.image.load("normal_sea.png")]
-    sea = Sea(sea_images)
+    normal_sea_imgs = [
+    pygame.image.load("normal_sea.png"),
+    pygame.image.load("normal_sea.png")
+    ]
+    mild_sea_imgs = [
+        pygame.image.load("mild_insanity_sea.png"),
+        pygame.image.load("mild_insanity_sea.png")
+    ]
+    high_sea_imgs = [
+        pygame.image.load("high_insanity_sea.png"),
+        pygame.image.load("high_insanity_sea.png")
+    ]
+
+    sea = Sea(normal_sea_imgs)
+    current_sea_state = "normal"
 
     title_image = pygame.image.load("title_screen.png")
     effect_image = pygame.image.load("effect.png").convert_alpha()
@@ -212,7 +250,7 @@ async def main():
     sanity = Resource("sanity", 5, 100)
     money = Resource("money", 175, 0)
 
-    status = "title"
+    status = "game"
     tutorial_phase = "dialogue"
     tutorial_fish_spawned = False
     entity_display = False
@@ -251,13 +289,13 @@ async def main():
                         "Replenish your sanity by catching normal fish.",
                         "Good luck."]
     text_box = TextBox(tutorial_text)
-    shop_button = Button("Shop", (300, 50))
+    shop_button = Button("shop.png", "Shop", (50, 100), size=80)
+    spawn_rate_plus = Button("spawnup.png","Spawn Faster", (350, 220), price=20)
+    spawn_rate_minus = Button("spawndown.png","Spawn Slower", (930, 220), price=20)
+    object_rate_plus = Button("objectup.png","More Objects", (350, 420), price=50)
+    object_rate_minus = Button("objectdown.png","Fewer Objects", (930, 420), price=50)
     shop_message = ""
     shop_message_timer = 0
-    spawn_rate_plus = Button("Increase Spawn Rate", (590, 180))
-    spawn_rate_minus = Button("Decrease Spawn Rate", (1180, 180))
-    object_rate_plus = Button("Increase Object Rate", (590, 360))
-    object_rate_minus = Button("Decreae Object Rate", (1180, 360))
     
 
     frame = 0
@@ -293,12 +331,11 @@ async def main():
                             status = "game"
             elif event.type == QUIT:
                 running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and status in ("game", "tutorial", "second_tutorial"):
+            elif event.type == pygame.MOUSEBUTTONDOWN and status in ("game", "tutorial", "second_tutorial", "shop"):
                 if status == "game":
                     if shop_button.clicked(event.pos):
                         status = "shop"
                         continue
-
                     for entity in active_entities:
                         if entity.rect.collidepoint(event.pos):
                             if event.button == 1:
@@ -306,6 +343,17 @@ async def main():
                                 caught_fish = entity.type
                                 money.current_amount += entity.money
                                 sanity.current_amount = min(100, sanity.current_amount + entity.sanity)
+                                if sanity.current_amount < 25 and current_sea_state != "high":
+                                    sea.set_images(high_sea_imgs)
+                                    current_sea_state = "high"
+
+                                elif sanity.current_amount < 50 and current_sea_state != "mild":
+                                    sea.set_images(mild_sea_imgs)
+                                    current_sea_state = "mild"
+
+                                elif sanity.current_amount >= 50 and current_sea_state != "normal":
+                                    sea.set_images(normal_sea_imgs)
+                                    current_sea_state = "normal"
                                 entity.rect.x = -2000
                                 entity.kill()
                                 entity_display = True
@@ -347,40 +395,59 @@ async def main():
                             break
 
                 elif status == "shop":
-                    
+
+                    close_button_rect = pygame.Rect(
+                        SCREEN_WIDTH - 40,
+                        10,
+                        30,
+                        30
+                    )
+
+                    if close_button_rect.collidepoint(event.pos):
+                        status = "game"
+                        shop_message_timer = 0
+                        continue
+
                     if spawn_rate_plus.clicked(event.pos):
-                        if money.current_amount >= 20:
-                            money.current_amount -= 20
-                            spawn_interval = max(30, spawn_interval - 30)
+                        if money.current_amount >= spawn_rate_plus.price:
+                            money.current_amount -= spawn_rate_plus.price
+                            spawn_rate -= 5
                         else:
                             shop_message = "You don't have enough money!"
-                            shop_message_timer = 120
-
+                            shop_message_timer = 80
                     elif spawn_rate_minus.clicked(event.pos):
-                        if money.current_amount >= 20:
-                            money.current_amount -= 20
-                            spawn_interval += 30
+                        if money.current_amount >= spawn_rate_minus.price:
+                            money.current_amount -= spawn_rate_minus.price
+                            spawn_rate += 5
                         else:
                             shop_message = "You don't have enough money!"
-                            shop_message_timer = 120
-
+                            shop_message_timer = 80
                     elif object_rate_plus.clicked(event.pos):
-                        if money.current_amount >= 50 and CHANCES["FISH"] > 0:
-                            money.current_amount -= 50
-                            CHANCES["FISH"] -= 1
-                            CHANCES["OBJECTS"] += 1
+                        if money.current_amount >= object_rate_plus.price:
+                            money.current_amount -= spawn_rate_plus.price
+                            chances["FISH"] -= 5
+                            chances["OBJECTS"] += 5
                         else:
                             shop_message = "You don't have enough money!"
-                            shop_message_timer = 120
-
+                            shop_message_timer = 80
                     elif object_rate_minus.clicked(event.pos):
-                        if money.current_amount >= 50 and CHANCES["OBJECTS"] > 0:
-                            money.current_amount -= 50
-                            CHANCES["FISH"] += 1
-                            CHANCES["OBJECTS"] -= 1
+                        if money.current_amount >= object_rate_minus.price:
+                            money.current_amount -= spawn_rate_minus.price
+                            chances["FISH"] += 5
+                            chances["OBJECTS"] -= 5
                         else:
                             shop_message = "You don't have enough money!"
-                            shop_message_timer = 120
+                            shop_message_timer = 80
+
+                    money.display()
+
+                    if shop_message_timer > 0:
+                        font_small = pygame.font.Font(None, 40)
+                        warning = font_small.render(shop_message, True, (255, 80, 80))
+                        warning_rect = warning.get_rect(center=(640, 360))
+                        screen.blit(warning, warning_rect)
+
+                        shop_message_timer -= 1
 
 
         pressed_keys = pygame.key.get_pressed()
@@ -448,7 +515,7 @@ async def main():
                     if fish_type:
                         active_entities.add(Fish(fish_type, FISH[fish_type]))
                 else:
-                    if category_roll <= CHANCES["FISH"]:
+                    if category_roll <= chances["FISH"]:
                         fish_type = weighted_pick(FISH)
                         if fish_type:
                             active_entities.add(Fish(fish_type, FISH[fish_type]))
@@ -478,28 +545,40 @@ async def main():
                     max_scale = 1.0
             sanity.display()
             money.display()
-            shop_button.draw()
+            shop_button.draw(screen)
             screen.blit(goal_surface, goal_rect)
             frame += 1
         
         elif status == "shop":
-            screen.fill((255, 255, 255))
+
+            screen.fill((100, 227, 214))
+
+            close_button_rect = pygame.Rect(
+                        SCREEN_WIDTH - 50,
+                        10,
+                        40,
+                        40
+                    )
+
+            pygame.draw.rect(screen, (180, 60, 60), close_button_rect)
+            pygame.draw.line(screen, (255,255,255), close_button_rect.topleft, close_button_rect.bottomright, 2)
+            pygame.draw.line(screen, (255,255,255), close_button_rect.topright, close_button_rect.bottomleft, 2)
 
             font = pygame.font.Font(None, 60)
-            title = font.render("SHOP", True, (255,255,255))
-            screen.blit(title, title.get_rect(center=(640,100)))
+            title = font.render("SHOP", True, (0, 0, 0))
+            screen.blit(title, title.get_rect(center=(640, 100)))
 
-            spawn_rate_plus.draw()
-            spawn_rate_minus.draw()
-            object_rate_plus.draw()
-            object_rate_minus.draw()
+            spawn_rate_plus.draw(screen)
+            spawn_rate_minus.draw(screen)
+            object_rate_plus.draw(screen)
+            object_rate_minus.draw(screen)
 
             money.display()
 
             if shop_message_timer > 0:
                 font_small = pygame.font.Font(None, 40)
                 warning = font_small.render(shop_message, True, (255, 80, 80))
-                warning_rect = warning.get_rect(center=(640, 500))
+                warning_rect = warning.get_rect(center=(640, 320))
                 screen.blit(warning, warning_rect)
 
                 shop_message_timer -= 1
