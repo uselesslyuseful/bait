@@ -6,12 +6,11 @@ import random
 pygame.init()
 
 async def main():
-
     SCREEN_WIDTH = 1280
     SCREEN_HEIGHT = 720
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     pygame.display.set_caption("bait")
-    GOALS = [50, 10000, 100000]
+    GOALS = [500, 10000, 100000]
     FISH = {
         "anchovy":{"image":pygame.image.load("fish_cuatro.png"), "sanity":1,"money":5, "percentage":40, "speed":2}, 
         "totallyafish":{"image":pygame.image.load("fish_tres.png"), "sanity":3, "money":17, "percentage":20, "speed":2},
@@ -33,7 +32,7 @@ async def main():
         "A Portrait of You Fishing Before You Were Born":{"image":pygame.image.load("portrait.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
         "Clock with Sixfold Hands":{"image":pygame.image.load("sixfoldclock.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
     }
-    chances = {"FISH":50, "OBJECTS":50}
+    chances = {"FISH":75, "OBJECTS":25}
 
     def weighted_pick(table):
         roll = random.randint(1, 100)
@@ -391,7 +390,7 @@ async def main():
     sanity = Resource("sanity", 5, 100)
     money = Resource("money", 175, 0)
 
-    status = "tutorial"
+    status = "title"
     tutorial_phase = "dialogue"
     tutorial_fish_spawned = False
     entity_display = False
@@ -402,7 +401,7 @@ async def main():
     max_scale = 3.0
     zoom_speed = 0.5
     min_scale = 1.0
-    fisher_image = pygame.transform.rotate(pygame.transform.smoothscale(pygame.image.load("fisher.png").convert_alpha(), (250, 150)), -15)
+    fisher_image = pygame.transform.rotate(pygame.transform.smoothscale(pygame.image.load("fisher.PNG").convert_alpha(), (250, 150)), -15)
     fisher_rect = fisher_image.get_rect(center=(640, 175))
     level = 0
     tutorial_text = ["Welcome to Bait!",
@@ -626,6 +625,7 @@ async def main():
         elif status == "tutorial":
             screen.fill((0,0,0))
             sea.update(screen)
+            screen.blit(fisher_image, fisher_rect)
 
             if tutorial_phase == "dialogue":
                 text_box.draw()
@@ -641,7 +641,6 @@ async def main():
                 text_box.draw()
             sanity.display()
             money.display()
-            screen.blit(fisher_image, fisher_rect)
         elif status == "second_tutorial":
             if start:
                 text_box = TextBox(second_tutorial)
@@ -663,7 +662,6 @@ async def main():
                 text_box.draw()
             sanity.display()
             money.display()
-            screen.blit(fisher_image, fisher_rect)
         elif status == "game":
             goal = GOALS[level]
             font = pygame.font.Font(None, 35)
@@ -701,6 +699,7 @@ async def main():
 
             screen.fill((0,0,0))
             sea.update(screen)
+            screen.blit(fisher_image, fisher_rect)
             for entity in active_entities:
                 screen.blit(entity.image, entity.rect)
             if entity_display:
@@ -720,7 +719,6 @@ async def main():
             shop_button.draw(screen)
             station_menu.draw(screen)
             screen.blit(goal_surface, goal_rect)
-            screen.blit(fisher_image, fisher_rect)
             frame += 1
         
         elif status == "shop":
@@ -768,7 +766,6 @@ async def main():
         await asyncio.sleep(0)
 
     pygame.quit()   
-
 
 if __name__ == "__main__":
     asyncio.run(main())
