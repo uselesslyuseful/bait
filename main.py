@@ -11,30 +11,22 @@ async def main():
     SCREEN_HEIGHT = 720
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
     pygame.display.set_caption("bait")
-    GOALS = [500, 10000, 100000]
+    GOALS = [50, 10000, 100000]
     FISH = {
-        "anchovy":{"image":pygame.image.load("fish_cuatro.png"), "sanity":1,"money":5, "percentage":14, "speed":2}, 
-        "mackerel":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1,"money":5, "percentage":14, "speed":2},
-        "bass":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1, "money":6, "percentage":12, "speed":2},
-        "squid":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":2, "money":12, "percentage":10, "speed":3},
-        "totallyafish":{"image":pygame.image.load("fish_tres.png"), "sanity":3, "money":17, "percentage":9, "speed":2},
-        "goldfish":{"image":pygame.image.load("fih_seis.png"), "sanity":4, "money":35, "percentage":8, "speed":2},
-        "shrimp":{"image":pygame.image.load("fih_siete_shrih.png"), "sanity":5, "money":100, "percentage":8, "speed":5},
-        "pufferfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":3, "money":20, "percentage":8, "speed":3},
-        "bettafish":{"image":pygame.image.load("fish_uno.png"), "sanity":5, "money":110, "percentage":6, "speed":7},
-        "sunfish":{"image":pygame.image.load("fish_dos.png"), "sanity":7, "money":250, "percentage":5, "speed":2},
-        "tuna":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":10, "money":900, "percentage":2, "speed":2},
-        "frog???":{"image":pygame.image.load("fish_cinco.PNG"), "sanity":13, "money":1000, "percentage":1, "speed":2},
-        "hammerhead":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":14, "money":1100, "percentage":1, "speed":3},
-        "greatwhite":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":14, "money":1100, "percentage":1, "speed":5},
-        "coelacanth":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":15, "money":1200, "percentage":1, "speed":1},
+        "anchovy":{"image":pygame.image.load("fish_cuatro.png"), "sanity":1,"money":5, "percentage":40, "speed":2}, 
+        "totallyafish":{"image":pygame.image.load("fish_tres.png"), "sanity":3, "money":17, "percentage":20, "speed":2},
+        "goldfish":{"image":pygame.image.load("fih_seis.png"), "sanity":4, "money":35, "percentage":16, "speed":2},
+        "shrimp":{"image":pygame.image.load("fih_siete_shrih.png"), "sanity":5, "money":100, "percentage":14, "speed":5},
+        "bettafish":{"image":pygame.image.load("fish_uno.png"), "sanity":5, "money":210, "percentage":5, "speed":7},
+        "sunfish":{"image":pygame.image.load("fish_dos.png"), "sanity":7, "money":350, "percentage":4, "speed":2},
+        "frog???":{"image":pygame.image.load("fish_cinco.PNG"), "sanity":13, "money":1500, "percentage":1, "speed":2},
         }
     OBJECTS = {
         "A Spoon That Remembers Future Meals":{"image":pygame.image.load("spoon.png"), "sanity":-7, "money":400, "percentage":15, "speed":5},
         "An Equation Leaking Colour":{"image":pygame.image.load("equationleakingcolor.png"), "sanity":-12, "money":900, "percentage":11, "speed":5},
         "The Sound of an Unsaid Apology":{"image":pygame.image.load("condensedapology.png"), "sanity":-10, "money":700, "percentage":13, "speed":5},
         "A Cube with Negative Volume":{"image":pygame.image.load("tesseract.png"), "sanity":-60, "money":8000, "percentage":4, "speed":5},
-        "Skeleton of a Fish":{"image":pygame.image.load("spoon.png"), "sanity":-3, "money":1, "percentage":25, "speed":5},
+        "Skeleton of a Fish":{"image":pygame.image.load("skeletonfish.png"), "sanity":-3, "money":1, "percentage":25, "speed":5},
         "Half of a Whole That Doesn’t Exist Yet":{"image":pygame.image.load("halfofawholethatdoesntexistyet.png"), "sanity":-30, "money":5000, "percentage":5, "speed":5},
         "The Laughing Line Segment":{"image":pygame.image.load("laughinglinesegment.png"), "sanity":-25, "money":1000, "percentage":10, "speed":5},
         "A Cube with Infinite Sides":{"image":pygame.image.load("squarewithinfinitesides.png"), "sanity":-80, "money":10000, "percentage":1, "speed":5},
@@ -399,7 +391,7 @@ async def main():
     sanity = Resource("sanity", 5, 100)
     money = Resource("money", 175, 0)
 
-    status = "title"
+    status = "tutorial"
     tutorial_phase = "dialogue"
     tutorial_fish_spawned = False
     entity_display = False
@@ -410,6 +402,8 @@ async def main():
     max_scale = 3.0
     zoom_speed = 0.5
     min_scale = 1.0
+    fisher_image = pygame.transform.rotate(pygame.transform.smoothscale(pygame.image.load("fisher.png").convert_alpha(), (250, 150)), -15)
+    fisher_rect = fisher_image.get_rect(center=(640, 175))
     level = 0
     tutorial_text = ["Welcome to Bait!",
                             "In this tutorial, you'll learn how to catch your own fish.",
@@ -647,6 +641,7 @@ async def main():
                 text_box.draw()
             sanity.display()
             money.display()
+            screen.blit(fisher_image, fisher_rect)
         elif status == "second_tutorial":
             if start:
                 text_box = TextBox(second_tutorial)
@@ -668,6 +663,7 @@ async def main():
                 text_box.draw()
             sanity.display()
             money.display()
+            screen.blit(fisher_image, fisher_rect)
         elif status == "game":
             goal = GOALS[level]
             font = pygame.font.Font(None, 35)
@@ -724,6 +720,7 @@ async def main():
             shop_button.draw(screen)
             station_menu.draw(screen)
             screen.blit(goal_surface, goal_rect)
+            screen.blit(fisher_image, fisher_rect)
             frame += 1
         
         elif status == "shop":
