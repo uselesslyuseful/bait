@@ -18,13 +18,13 @@ async def main():
         "bass":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":1, "money":6, "percentage":12, "speed":2},
         "squid":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":2, "money":12, "percentage":10, "speed":3},
         "totallyafish":{"image":pygame.image.load("fish_tres.png"), "sanity":3, "money":17, "percentage":9, "speed":2},
-        "clownfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":4, "money":35, "percentage":8, "speed":2},
-        "seahorse":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":5, "money":100, "percentage":8, "speed":5},
+        "goldfish":{"image":pygame.image.load("fih_seis.png"), "sanity":4, "money":35, "percentage":8, "speed":2},
+        "shrimp":{"image":pygame.image.load("fih_siete_shrih.png"), "sanity":5, "money":100, "percentage":8, "speed":5},
         "pufferfish":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":3, "money":20, "percentage":8, "speed":3},
         "bettafish":{"image":pygame.image.load("fish_uno.png"), "sanity":5, "money":110, "percentage":6, "speed":7},
         "sunfish":{"image":pygame.image.load("fish_dos.png"), "sanity":7, "money":250, "percentage":5, "speed":2},
         "tuna":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":10, "money":900, "percentage":2, "speed":2},
-        "frog???":{"image":pygame.image.load("fish_cinco.png"), "sanity":13, "money":1000, "percentage":1, "speed":2},
+        "frog???":{"image":pygame.image.load("fish_cinco.PNG"), "sanity":13, "money":1000, "percentage":1, "speed":2},
         "hammerhead":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":14, "money":1100, "percentage":1, "speed":3},
         "greatwhite":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":14, "money":1100, "percentage":1, "speed":5},
         "coelacanth":{"image":pygame.image.load("fish_placeholder2.png"), "sanity":15, "money":1200, "percentage":1, "speed":1},
@@ -36,10 +36,10 @@ async def main():
         "A Cube with Negative Volume":{"image":pygame.image.load("tesseract.png"), "sanity":-60, "money":8000, "percentage":4, "speed":5},
         "Skeleton of a Fish":{"image":pygame.image.load("spoon.png"), "sanity":-3, "money":1, "percentage":25, "speed":5},
         "Half of a Whole That Doesn’t Exist Yet":{"image":pygame.image.load("halfofawholethatdoesntexistyet.png"), "sanity":-30, "money":5000, "percentage":5, "speed":5},
-        "The Laughing Line Segment":{"image":pygame.image.load("spoon.png"), "sanity":-25, "money":1000, "percentage":10, "speed":5},
+        "The Laughing Line Segment":{"image":pygame.image.load("laughinglinesegment.png"), "sanity":-25, "money":1000, "percentage":10, "speed":5},
         "A Cube with Infinite Sides":{"image":pygame.image.load("squarewithinfinitesides.png"), "sanity":-80, "money":10000, "percentage":1, "speed":5},
         "A Portrait of You Sorting Objects Before You Were Born":{"image":pygame.image.load("spoon.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
-        "Clock with Sixfold Hands":{"image":pygame.image.load("spoon.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
+        "Clock with Sixfold Hands":{"image":pygame.image.load("sixfoldclock.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
     }
     CHANCES = {"FISH":50, "OBJECTS":50}
 
@@ -99,6 +99,18 @@ async def main():
                 y += 30
         def update(self):
             self.curr_text += 1
+    
+    class Button(pygame.sprite.Sprite):
+        def __init__(self, text, center_pos):
+            super().__init__()
+            self.font = pygame.font.Font(None, 30)
+            self.text = text
+            self.image = pygame.image.load("box.png")
+            self.rect = self.image.get_rect(center=center_pos)
+        def draw(self):
+            screen.blit(self.image, self.rect)
+        def clicked(self, pos):
+            return self.rect.collidepoint(pos)
 
     class Sea:
         def __init__(self, images):
@@ -206,12 +218,14 @@ async def main():
     entity_display = False
     caught_fish = None
     caught_frame = 0
+    spawn_rate = 300
     active_entities = pygame.sprite.Group()
     max_scale = 3.0
     zoom_speed = 0.5
     min_scale = 1.0
     zooming = False
     level = 0
+    button_text = "Shop"
     tutorial_text = ["Welcome to Bait!",
                             "In this tutorial, you'll learn how to catch your own fish.",
                             "After this dialogue, you'll see a fish show up.",
@@ -237,6 +251,14 @@ async def main():
                         "Replenish your sanity by catching normal fish.",
                         "Good luck."]
     text_box = TextBox(tutorial_text)
+    shop_button = Button("Shop", (300, 50))
+    shop_message = ""
+    shop_message_timer = 0
+    spawn_rate_plus = Button("Increase Spawn Rate", (590, 180))
+    spawn_rate_minus = Button("Decrease Spawn Rate", (1180, 180))
+    object_rate_plus = Button("Increase Object Rate", (590, 360))
+    object_rate_minus = Button("Decreae Object Rate", (1180, 360))
+    
 
     frame = 0
     start = True
@@ -248,6 +270,8 @@ async def main():
             if event.type == KEYDOWN:
                 if event.key == K_ESCAPE:
                     running = False
+                elif event.key == K_x and status == "shop":
+                    status = "game"
                 elif event.key == K_RETURN and status == "title":
                     status = "tutorial"
                 elif event.key == K_RETURN and (status == "tutorial" or status == "second_tutorial"):
@@ -270,28 +294,95 @@ async def main():
             elif event.type == QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and status in ("game", "tutorial", "second_tutorial"):
-                for entity in active_entities:
-                    if entity.rect.collidepoint(event.pos):
-                        if event.button == 1:
-                            caught_frame = frame
-                            caught_fish = entity.type
-                            money.current_amount += entity.money
-                            sanity.current_amount = min(100, sanity.current_amount + entity.sanity)
-                            entity.rect.x = -2000
-                            entity.kill()
-                            entity_display = True
-                            max_scale = 3.0
-                            if status == "tutorial" and tutorial_phase == "catch":
-                                tutorial_phase = "post_dialogue"
-                                text_box.curr_text = 4
-                                entity_display = False
-                                max_scale = 1.0
-                            elif status == "second_tutorial" and tutorial_phase =="catch":
-                                tutorial_phase = "post_dialogue"
-                                text_box.curr_text = 6
-                                entity_display = False
-                                max_scale = 1.0
-                        break
+                if status == "game":
+                    if shop_button.clicked(event.pos):
+                        status = "shop"
+                        continue
+
+                    for entity in active_entities:
+                        if entity.rect.collidepoint(event.pos):
+                            if event.button == 1:
+                                caught_frame = frame
+                                caught_fish = entity.type
+                                money.current_amount += entity.money
+                                sanity.current_amount = min(100, sanity.current_amount + entity.sanity)
+                                entity.rect.x = -2000
+                                entity.kill()
+                                entity_display = True
+                                max_scale = 3.0
+                                if status == "tutorial" and tutorial_phase == "catch":
+                                    tutorial_phase = "post_dialogue"
+                                    text_box.curr_text = 4
+                                    entity_display = False
+                                    max_scale = 1.0
+                                elif status == "second_tutorial" and tutorial_phase =="catch":
+                                    tutorial_phase = "post_dialogue"
+                                    text_box.curr_text = 6
+                                    entity_display = False
+                                    max_scale = 1.0
+                            break
+
+                elif status in ("tutorial", "second_tutorial"):
+                    for entity in active_entities:
+                        if entity.rect.collidepoint(event.pos):
+                            if event.button == 1:
+                                caught_frame = frame
+                                caught_fish = entity.type
+                                money.current_amount += entity.money
+                                sanity.current_amount = min(100, sanity.current_amount + entity.sanity)
+                                entity.rect.x = -2000
+                                entity.kill()
+                                entity_display = True
+                                max_scale = 3.0
+                                if status == "tutorial" and tutorial_phase == "catch":
+                                    tutorial_phase = "post_dialogue"
+                                    text_box.curr_text = 4
+                                    entity_display = False
+                                    max_scale = 1.0
+                                elif status == "second_tutorial" and tutorial_phase =="catch":
+                                    tutorial_phase = "post_dialogue"
+                                    text_box.curr_text = 6
+                                    entity_display = False
+                                    max_scale = 1.0
+                            break
+
+                elif status == "shop":
+                    
+                    if spawn_rate_plus.clicked(event.pos):
+                        if money.current_amount >= 20:
+                            money.current_amount -= 20
+                            spawn_interval = max(30, spawn_interval - 30)
+                        else:
+                            shop_message = "You don't have enough money!"
+                            shop_message_timer = 120
+
+                    elif spawn_rate_minus.clicked(event.pos):
+                        if money.current_amount >= 20:
+                            money.current_amount -= 20
+                            spawn_interval += 30
+                        else:
+                            shop_message = "You don't have enough money!"
+                            shop_message_timer = 120
+
+                    elif object_rate_plus.clicked(event.pos):
+                        if money.current_amount >= 50 and CHANCES["FISH"] > 0:
+                            money.current_amount -= 50
+                            CHANCES["FISH"] -= 1
+                            CHANCES["OBJECTS"] += 1
+                        else:
+                            shop_message = "You don't have enough money!"
+                            shop_message_timer = 120
+
+                    elif object_rate_minus.clicked(event.pos):
+                        if money.current_amount >= 50 and CHANCES["OBJECTS"] > 0:
+                            money.current_amount -= 50
+                            CHANCES["FISH"] += 1
+                            CHANCES["OBJECTS"] -= 1
+                        else:
+                            shop_message = "You don't have enough money!"
+                            shop_message_timer = 120
+
+
         pressed_keys = pygame.key.get_pressed()
         if status == "title":
             screen.blit(title_image,(0,0))
@@ -349,7 +440,7 @@ async def main():
                     if level == 1:
                         status = "second_tutorial"
 
-            if frame % 300 == 0:
+            if frame % spawn_rate == 0:
                 category_roll = random.randint(1, 100)
 
                 if level == 0:
@@ -387,8 +478,31 @@ async def main():
                     max_scale = 1.0
             sanity.display()
             money.display()
+            shop_button.draw()
             screen.blit(goal_surface, goal_rect)
             frame += 1
+        
+        elif status == "shop":
+            screen.fill((255, 255, 255))
+
+            font = pygame.font.Font(None, 60)
+            title = font.render("SHOP", True, (255,255,255))
+            screen.blit(title, title.get_rect(center=(640,100)))
+
+            spawn_rate_plus.draw()
+            spawn_rate_minus.draw()
+            object_rate_plus.draw()
+            object_rate_minus.draw()
+
+            money.display()
+
+            if shop_message_timer > 0:
+                font_small = pygame.font.Font(None, 40)
+                warning = font_small.render(shop_message, True, (255, 80, 80))
+                warning_rect = warning.get_rect(center=(640, 500))
+                screen.blit(warning, warning_rect)
+
+                shop_message_timer -= 1
 
         clock.tick(60)
         pygame.display.update()
