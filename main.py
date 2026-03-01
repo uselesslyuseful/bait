@@ -38,7 +38,7 @@ async def main():
         "Half of a Whole That Doesn’t Exist Yet":{"image":pygame.image.load("halfofawholethatdoesntexistyet.png"), "sanity":-30, "money":5000, "percentage":5, "speed":5},
         "The Laughing Line Segment":{"image":pygame.image.load("laughinglinesegment.png"), "sanity":-25, "money":1000, "percentage":10, "speed":5},
         "A Cube with Infinite Sides":{"image":pygame.image.load("squarewithinfinitesides.png"), "sanity":-80, "money":10000, "percentage":1, "speed":5},
-        "A Portrait of You Sorting Objects Before You Were Born":{"image":pygame.image.load("spoon.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
+        "A Portrait of You Fishing Before You Were Born":{"image":pygame.image.load("portrait.png"), "sanity":-99, "money":20000, "percentage":1, "speed":5},
         "Clock with Sixfold Hands":{"image":pygame.image.load("sixfoldclock.png"), "sanity":-20, "money":600, "percentage":15, "speed":5},
     }
     chances = {"FISH":50, "OBJECTS":50}
@@ -288,6 +288,13 @@ async def main():
                         "Watch out. Some of them will take as much as they can.",
                         "Replenish your sanity by catching normal fish.",
                         "Good luck."]
+    end_text = ["Oh, dear.",
+                "Your sanity has depleted.",
+                "And you were doing so well...",
+                "...It was bound to happen sometime.",
+                "I suppose I'll just have to wait until this whole thing restarts.",
+                "Farewell."
+                ]
     text_box = TextBox(tutorial_text)
     shop_button = Button("shop.png", "Shop", (50, 100), size=80)
     spawn_rate_plus = Button("spawnup.png","Spawn Faster", (350, 220), price=20)
